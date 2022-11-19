@@ -4,11 +4,14 @@
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include "WThermostat.h"
-#include "WThermostat_BAC_002_ALW.h"
-#include "WThermostat_ME102H.h"
+//#include "WThermostat_BAC_002_ALW.h"
+//#include "WThermostat_ME102H.h"
 
 class WThermostat_ME81H : public WThermostat {
 public :
+  const char* SENSOR_SELECTION_INTERNAL = "internal";
+  const char* SENSOR_SELECTION_FLOOR = "floor";
+  const char* SENSOR_SELECTION_BOTH = "both";
   WThermostat_ME81H(WNetwork* network, WProperty* thermostatModel, WClock* wClock)
     : WThermostat(network, thermostatModel, wClock) {
     network->debug(F("WThermostat_ME81H created"));

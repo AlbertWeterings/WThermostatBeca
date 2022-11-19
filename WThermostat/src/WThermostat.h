@@ -879,7 +879,7 @@ protected :
         	//temp
         	String tempStr((double) schedules[index + 2]	/ this->temperatureFactor, 1);
         	page->print(F("Temp:"));
-        	page->printf(HTTP_INPUT_FIELD, keyT, "4", tempStr.c_str());
+        	page->printf(HTTP_INPUT_FIELD, keyT, "5", tempStr.c_str());
         	page->print(F("</td>"));
 				} else {
 					break;

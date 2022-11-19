@@ -7,11 +7,12 @@
 
 //#define HEARTBEAT_INTERVAL 60000  //set the heartbeat interval
 //#define QUERY_INTERVAL 15000      //set the query interval Make sure not to stress the MCU
-#define HEARTBEAT_INTERVAL 10000  //origional value
-//#define QUERY_INTERVAL 2000      //origional value
-#define QUERY_INTERVAL 5000        //new default value needs multipler
+#define HEARTBEAT_INTERVAL 10000    //origional value
+//#define QUERY_INTERVAL 2000       //origional value
+#define QUERY_INTERVAL 5000         //2022-11-19 robertorobles value Test 5
 #define MINIMUM_INTERVAL 2000
-#define CMD_RESP_TIMEOUT 1500
+//#define CMD_RESP_TIMEOUT 1500     //origional value
+#define CMD_RESP_TIMEOUT 3000       //2022-11-19 robertorobles value Test 5
 
 const unsigned char COMMAND_START[] = {0x55, 0xAA};
 
@@ -34,7 +35,8 @@ public :
     : WDevice(network, id, name, type) {
       resetAll();
       this->receivingDataFromMcu = false;
-      lastHeartBeat = lastQueryStatus = 0;
+      //lastHeartBeat = lastQueryStatus = 0;
+      lastHeartBeat = lastQueryStatus = queryStatusIndex = 0; //2022-11-19 attempt to fix ME81H lockup
       //notifyAllMcuCommands
   		this->notifyAllMcuCommands = network->getSettings()->setBoolean("notifyAllMcuCommands", false);
       //QueryMCU
@@ -210,11 +212,13 @@ public :
           lastHeartBeat = now;
         }
         //Query
-         if (( (now - lastHeartBeat) < HEARTBEAT_INTERVAL)                              //Only query in between heartbeats
-            && (QueryMCU->getBoolean())                                                 //Only query when QueryMCU is enabled
-            && ((lastQueryStatus == 0) || (now - lastQueryStatus > QUERY_INTERVAL))) {  //Query at first boot and every QUERY_INTERVAL afterwards if both 2 test are true
+         if (( (now - lastHeartBeat) < HEARTBEAT_INTERVAL)                                                     //Only query in between heartbeats
+            && (QueryMCU->getBoolean())                                                                        //Only query when QueryMCU is enabled
+//          && ((lastQueryStatus == 0) || (now - lastQueryStatus > QUERY_INTERVAL))) {  //Query at first boot and every QUERY_INTERVAL afterwards if both 2 test are true
+            && ((lastQueryStatus == 0) || (now - lastQueryStatus > QUERY_INTERVAL) && queryStatusIndex < 2)) { //2022-11-19 attempt to fix ME81H lockup - Query at first boot and every QUERY_INTERVAL afterwards if both 2 test are true
           queryDeviceState();
           lastQueryStatus = now;
+          queryStatusIndex++; //2022-11-19 attempt to fix ME81H lockup
         }
         break;
       }
@@ -251,6 +255,7 @@ protected :
   bool mcuRestarted;
   unsigned long lastHeartBeat;
   unsigned long lastQueryStatus;
+  int queryStatusIndex; //2022-11-19 attempt to fix ME81H lockup
   int iResetState;        // JY
   unsigned long lastCommandSent;   // JY
   WTuyaDeviceState processingState; // JY

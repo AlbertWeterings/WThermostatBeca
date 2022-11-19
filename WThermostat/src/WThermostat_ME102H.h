@@ -5,10 +5,6 @@
 #include <ESP8266WiFi.h>
 #include "WThermostat.h"
 
-const char* SENSOR_SELECTION_INTERNAL = "internal";
-const char* SENSOR_SELECTION_FLOOR = "floor";
-const char* SENSOR_SELECTION_BOTH = "both";
-
 // Celcius/Farenheit            = Tuya DPID DEC  23 HEX 17 55AA0307000517040001002A
 // Device on/off                = Tuya DPID DEC   1 HEX 01 55AA03070005010100010112
 // Actual Temperature           = Tuya DPID DEC  24 HEX 18 55AA03070008180200040000001645
@@ -29,6 +25,9 @@ const char* SENSOR_SELECTION_BOTH = "both";
 
 class WThermostat_ME102H : public WThermostat {
 public :
+  const char* SENSOR_SELECTION_INTERNAL = "internal";
+  const char* SENSOR_SELECTION_FLOOR = "floor";
+  const char* SENSOR_SELECTION_BOTH = "both";
   WThermostat_ME102H(WNetwork* network, WProperty* thermostatModel, WClock* wClock)
     : WThermostat(network, thermostatModel, wClock) {
     network->debug(F("WThermostat_ME102H created"));
