@@ -77,15 +77,15 @@ public :
   }
 
   virtual bool isDeviceStateComplete() {
-      return (((this->byteDeviceOn == NOT_SUPPORTED)          || (!this->deviceOn->isNull())) &&
-              ((this->byteTemperatureActual == NOT_SUPPORTED) || (!this->actualTemperature->isNull())) &&
-              ((this->byteTemperatureTarget == NOT_SUPPORTED) || (this->targetTemperatureManualMode != 0.0)) &&
-              ((this->byteTemperatureFloor == NOT_SUPPORTED)  || (!this->actualFloorTemperature->isNull())) &&
-              ((this->byteMaxHeaterTemperature == NOT_SUPPORTED) || (!this->maxHeaterTemperature->isNull())) &&
-              ((this->byteMinHeaterTemperature == NOT_SUPPORTED) || (!this->minHeaterTemperature->isNull())) &&
+      return (((this->byteDeviceOn == NOT_SUPPORTED)              || (!this->deviceOn->isNull())) &&
+              ((this->byteTemperatureActual == NOT_SUPPORTED)     || (!this->actualTemperature->isNull())) &&
+              ((this->byteTemperatureTarget == NOT_SUPPORTED)     || (this->targetTemperatureManualMode != 0.0)) &&
+              ((this->byteTemperatureFloor == NOT_SUPPORTED)      || (!this->actualFloorTemperature->isNull())) &&
+              ((this->byteMaxHeaterTemperature == NOT_SUPPORTED)  || (!this->maxHeaterTemperature->isNull())) &&
+              ((this->byteMinHeaterTemperature == NOT_SUPPORTED)  || (!this->minHeaterTemperature->isNull())) &&
               ((this->byteTemperatureCorrection == NOT_SUPPORTED) || (!this->temperatureCorrection->isNull())) &&
-              ((this->byteSchedulesMode == NOT_SUPPORTED)     || (!this->schedulesMode->isNull())) &&
-              ((this->byteFreezeMode == NOT_SUPPORTED)     || (!this->freezeMode->isNull()))
+              ((this->byteSchedulesMode == NOT_SUPPORTED)         || (!this->schedulesMode->isNull())) &&
+              ((this->byteFreezeMode == NOT_SUPPORTED)            || (!this->freezeMode->isNull()))
              );
   }
 

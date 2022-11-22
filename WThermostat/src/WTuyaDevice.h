@@ -9,13 +9,15 @@
 //#define QUERY_INTERVAL 15000      //set the query interval Make sure not to stress the MCU
 #define HEARTBEAT_INTERVAL 10000    //origional value
 //#define QUERY_INTERVAL 2000       //origional value
-#define QUERY_INTERVAL 5000         //2022-11-19 robertorobles value Test 5
+//#define QUERY_INTERVAL 5000         //2022-11-19 robertorobles value Test 5
+#define QUERY_INTERVAL 60000         //2022-11-20 Tuya documentation not lower then 1 minute
 #define MINIMUM_INTERVAL 2000
 //#define CMD_RESP_TIMEOUT 1500     //origional value
-#define CMD_RESP_TIMEOUT 3000       //2022-11-19 robertorobles value Test 5
+#define CMD_RESP_TIMEOUT 2000       //2022-11-19 robertorobles value Test 5
 
 const unsigned char COMMAND_START[] = {0x55, 0xAA};
 
+// Create enum for present different state of the device
 enum WTuyaDeviceState {
     STATE_INIT,
     STATE_PRODUCT_INFO_WAIT,
@@ -35,8 +37,8 @@ public :
     : WDevice(network, id, name, type) {
       resetAll();
       this->receivingDataFromMcu = false;
-      //lastHeartBeat = lastQueryStatus = 0;
-      lastHeartBeat = lastQueryStatus = queryStatusIndex = 0; //2022-11-19 attempt to fix ME81H lockup
+      lastHeartBeat = lastQueryStatus = 0;
+      //lastHeartBeat = lastQueryStatus = queryStatusIndex = 0; //2022-11-19 attempt to fix ME81H lockup
       //notifyAllMcuCommands
   		this->notifyAllMcuCommands = network->getSettings()->setBoolean("notifyAllMcuCommands", false);
       //QueryMCU
@@ -52,22 +54,26 @@ public :
       usingCommandQueue = false;
   }
 
+  // Query Product Info
   virtual void queryProductInfo() {
     unsigned char queryStateCommand[] = { 0x55, 0xAA, 0x00, 0x01, 0x00, 0x00 };
     commandCharsToSerial(6, queryStateCommand, false, STATE_PRODUCT_INFO_WAIT);
   }
 
+  // Query Working Mode WiFi
   virtual void queryWorkingModeWiFi() {
     unsigned char queryStateCommand[] = { 0x55, 0xAA, 0x00, 0x02, 0x00, 0x00 };
     commandCharsToSerial(6, queryStateCommand, false, STATE_WIFI_WORKING_MODE_WAIT);
   }
 
+  // Query Device State
   virtual void queryDeviceState() {
     //55 AA 00 08 00 00
     unsigned char queryStateCommand[] = { 0x55, 0xAA, 0x00, 0x08, 0x00, 0x00 };
     commandCharsToSerial(6, queryStateCommand);
   }
 
+  // Cancel Configuration
   virtual void cancelConfiguration() {
     if (gpioStatus != -1) {
       pinMode(gpioStatus, OUTPUT);
@@ -79,6 +85,7 @@ public :
     delay(1000);
   }
 
+  // Main Loop
   virtual void loop(unsigned long now) {
     while (Serial.available() > 0) {
       receiveIndex++;
@@ -214,11 +221,13 @@ public :
         //Query
          if (( (now - lastHeartBeat) < HEARTBEAT_INTERVAL)                                                     //Only query in between heartbeats
             && (QueryMCU->getBoolean())                                                                        //Only query when QueryMCU is enabled
-//          && ((lastQueryStatus == 0) || (now - lastQueryStatus > QUERY_INTERVAL))) {  //Query at first boot and every QUERY_INTERVAL afterwards if both 2 test are true
-            && ((lastQueryStatus == 0) || (now - lastQueryStatus > QUERY_INTERVAL) && queryStatusIndex < 2)) { //2022-11-19 attempt to fix ME81H lockup - Query at first boot and every QUERY_INTERVAL afterwards if both 2 test are true
-          queryDeviceState();
+//            && ((now - lastCommandSent) > CMD_RESP_TIMEOUT)  //2022-11-22 Make sure MCU got enough time to process last command
+            && ((lastQueryStatus == 0) || (now - lastQueryStatus > QUERY_INTERVAL))) {  //Query at first boot and every QUERY_INTERVAL afterwards if both 2 test are true
+//            && ((lastQueryStatus == 0) || (now - lastQueryStatus > QUERY_INTERVAL) && queryStatusIndex < 2)) { //2022-11-19 attempt to fix ME81H lockup - Query at first boot and every QUERY_INTERVAL afterwards if both 2 test are true
+          //queryDeviceState(); //2022-11-20
+          this->queryDeviceState(); //2022-11-20 This was in the past
           lastQueryStatus = now;
-          queryStatusIndex++; //2022-11-19 attempt to fix ME81H lockup
+//          queryStatusIndex++; //2022-11-19 attempt to fix ME81H lockup
         }
         break;
       }
@@ -250,12 +259,12 @@ protected :
   bool receivingDataFromMcu;
   int commandLength;
   int receiveIndex;
-  bool firstHeartBeatReceived;
+  //bool firstHeartBeatReceived; //2022-11-19 Variable looks unused
   //2021-01-24 test for bht-002
   bool mcuRestarted;
   unsigned long lastHeartBeat;
   unsigned long lastQueryStatus;
-  int queryStatusIndex; //2022-11-19 attempt to fix ME81H lockup
+//  int queryStatusIndex; //2022-11-19 attempt to fix ME81H lockup
   int iResetState;        // JY
   unsigned long lastCommandSent;   // JY
   WTuyaDeviceState processingState; // JY
@@ -284,18 +293,22 @@ protected :
     return result;
   }
 
+  // return receivedCommand
   unsigned char* getCommand() {
     return receivedCommand;
   }
 
+  // return commandLength
   int getCommandLength() {
     return commandLength;
   }
 
+  // Convert Command from serial to String format
   String getCommandAsString() {
     return getBufferAsString(commandLength, receivedCommand);
   }
 
+  // Convert buffer from serial to String
   String getBufferAsString(int length, unsigned char* command) {
     String result = "";
     bool fSpace = false;
@@ -311,6 +324,7 @@ protected :
     return result;
   }
 
+  // Convert Command from HexStr to Serial
   void commandHexStrToSerial(String command) {
     command.trim();
     command.replace(" ", "");
@@ -328,6 +342,7 @@ protected :
     }
   }
 
+  // Process the Command that send from MCU And Specify it's type
   virtual bool processCommand(byte commandByte, byte length) {
     bool knownCommand = false;
     switch (commandByte) {
@@ -342,6 +357,7 @@ protected :
         if ((knownCommand) && ((this->processingState == STATE_INIT) || (receivedCommand[6] == 0x00))) {
           //At first packet from MCU or first heart received by ESP, query queryProductInfo
           queryProductInfo();
+          // Wait for Product info
           this->processingState = STATE_PRODUCT_INFO_WAIT;
         }
         knownCommand = true;
@@ -408,6 +424,7 @@ protected :
     return knownCommand;
   }
 
+  // Process Status Command from MCU
   virtual bool processStatusCommand(byte statusCommandByte, byte length) {
     return false;
   }
@@ -463,7 +480,7 @@ protected :
         Serial.print((char)chValue);
       }
       setProcessingState(nextState);
-      lastCommandSent = millis();
+      lastCommandSent = now(); //2022-11-22 this might need to be now() instead of millis()
       //network->debug("commandCharsToSerial: %s", getBufferAsString(length, command).c_str());
     } else {
       fAddQueue = true;

@@ -32,7 +32,7 @@ public :
     this->byteSchedulingDays = 8;
     //custom
     this->byteSystemMode = 0x24;
-    this->byteSensorSelection = 0x2b;
+    this->byteSensorSelection = 0x2d; //2022-11-19 changed 2b to 2d should solve sensorSelection (null)
   }
 
   virtual void initializeProperties() {
