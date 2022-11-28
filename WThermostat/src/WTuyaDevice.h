@@ -5,15 +5,10 @@
 #include <ESP8266WiFi.h>
 #include "WDevice.h"
 
-//#define HEARTBEAT_INTERVAL 60000  //set the heartbeat interval
-//#define QUERY_INTERVAL 15000      //set the query interval Make sure not to stress the MCU
-#define HEARTBEAT_INTERVAL 10000    //origional value
-//#define QUERY_INTERVAL 2000       //origional value
-//#define QUERY_INTERVAL 5000         //2022-11-19 robertorobles value Test 5
-#define QUERY_INTERVAL 60000         //2022-11-20 Tuya documentation not lower then 1 minute
+#define HEARTBEAT_INTERVAL 10000  //set the heartbeat interval
+#define QUERY_INTERVAL 60000      //set the query interval Make sure not to stress the MCU go not lower then 1 minute
 #define MINIMUM_INTERVAL 2000
-//#define CMD_RESP_TIMEOUT 1500     //origional value
-#define CMD_RESP_TIMEOUT 2000       //2022-11-19 robertorobles value Test 5
+#define CMD_RESP_TIMEOUT 2000     //Timeout for the MCU
 
 const unsigned char COMMAND_START[] = {0x55, 0xAA};
 
@@ -38,7 +33,6 @@ public :
       resetAll();
       this->receivingDataFromMcu = false;
       lastHeartBeat = lastQueryStatus = 0;
-      //lastHeartBeat = lastQueryStatus = queryStatusIndex = 0; //2022-11-19 attempt to fix ME81H lockup
       //notifyAllMcuCommands
   		this->notifyAllMcuCommands = network->getSettings()->setBoolean("notifyAllMcuCommands", false);
       //QueryMCU
@@ -219,37 +213,15 @@ public :
           lastHeartBeat = now;
         }
         //Query
-         if (( (now - lastHeartBeat) < HEARTBEAT_INTERVAL)                                                     //Only query in between heartbeats
-            && (QueryMCU->getBoolean())                                                                        //Only query when QueryMCU is enabled
-//            && ((now - lastCommandSent) > CMD_RESP_TIMEOUT)  //2022-11-22 Make sure MCU got enough time to process last command
+         if (( (now - lastHeartBeat) < HEARTBEAT_INTERVAL)                              //Only query in between heartbeats
+            && (QueryMCU->getBoolean())                                                 //Only query when QueryMCU is enabled
             && ((lastQueryStatus == 0) || (now - lastQueryStatus > QUERY_INTERVAL))) {  //Query at first boot and every QUERY_INTERVAL afterwards if both 2 test are true
-//            && ((lastQueryStatus == 0) || (now - lastQueryStatus > QUERY_INTERVAL) && queryStatusIndex < 2)) { //2022-11-19 attempt to fix ME81H lockup - Query at first boot and every QUERY_INTERVAL afterwards if both 2 test are true
-          //queryDeviceState(); //2022-11-20
-          this->queryDeviceState(); //2022-11-20 This was in the past
-          lastQueryStatus = now;
-//          queryStatusIndex++; //2022-11-19 attempt to fix ME81H lockup
+            this->queryDeviceState();                                                   //2022-11-20 was without this-> in the past
+            lastQueryStatus = now;
         }
         break;
       }
     }
-
-    /*//Heartbeat
-    if ((HEARTBEAT_INTERVAL > 0)
-        && ((lastHeartBeat == 0)
-            || (now - lastHeartBeat > HEARTBEAT_INTERVAL))) {
-      unsigned char heartBeatCommand[] =
-          { 0x55, 0xAA, 0x00, 0x00, 0x00, 0x00 };
-      commandCharsToSerial(6, heartBeatCommand);
-      //commandHexStrToSerial("55 aa 00 00 00 00");
-      lastHeartBeat = now;
-    }
-    //Query
-    if ((lastHeartBeat > 0) &&
-        (now - lastQueryStatus > MINIMUM_INTERVAL) &&
-        (now - lastQueryStatus > QUERY_INTERVAL)) {
-      this->queryDeviceState();
-      lastQueryStatus = now;
-    }*/
   }
 
 protected :
@@ -357,7 +329,7 @@ protected :
         if ((knownCommand) && ((this->processingState == STATE_INIT) || (receivedCommand[6] == 0x00))) {
           //At first packet from MCU or first heart received by ESP, query queryProductInfo
           queryProductInfo();
-          // Wait for Product info
+          //Wait for Product info
           this->processingState = STATE_PRODUCT_INFO_WAIT;
         }
         knownCommand = true;
